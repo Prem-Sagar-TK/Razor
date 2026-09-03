@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Razorpay Agentic Commerce</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app" class="app-layout">
+      <!-- Minimal Header -->
+      <header class="top-nav">
+        <div class="nav-brand">
+          <div class="nav-logo">⚡</div>
+          <div class="nav-titles">
+            <h2>Agentic Commerce</h2>
+            <span class="nav-subtitle">Razorpay Test Mode Mandate Gate</span>
+          </div>
+        </div>
+
+        <div class="nav-stats">
+          <div class="stat-pill">
+            <span class="stat-label">Budget</span>
+            <span class="stat-value" id="header-headroom-text">₹3,000.00</span>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-label">Spent</span>
+            <span class="stat-value muted" id="spent-text">₹0.00</span>
+          </div>
+          <button id="btn-reset-session" class="btn-text" title="Reset Session">
+            ↺ Reset
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Content Split -->
+      <div class="main-body">
+        <!-- Left: AI Assistant Chat -->
+        <section class="chat-section">
+          <div class="section-title">
+            <div class="title-with-status">
+              <h3>AI Buyer Assistant</h3>
+              <span class="status-dot" id="llm-mode-badge">Rule Engine</span>
+            </div>
+          </div>
+
+          <div class="chat-thread" id="chat-messages">
+            <div class="chat-bubble agent">
+              <p>Hi! I'm your AI Buyer Assistant. Tell me what you're looking for, or pick a prompt below.</p>
+              <div class="quick-prompts">
+                <button class="prompt-pill" data-prompt="Search earbuds">Earbuds</button>
+                <button class="prompt-pill" data-prompt="Add Wireless Earbuds Pro">Buy Earbuds Pro</button>
+                <button class="prompt-pill" data-prompt="Add Mechanical Keyboard">Buy Keyboard</button>
+                <button class="prompt-pill" data-prompt="Checkout">Checkout</button>
+              </div>
+            </div>
+          </div>
+
+          <form id="chat-form" class="chat-input-bar">
+            <input
+              type="text"
+              id="chat-input"
+              placeholder="Ask agent to search, add to cart, or checkout..."
+              autocomplete="off"
+            />
+            <button type="submit" class="btn-send" id="btn-send-chat">Send</button>
+          </form>
+        </section>
+
+        <!-- Right: Storefront & Controls -->
+        <section class="store-section">
+          <!-- View Navigation Tabs -->
+          <div class="view-tabs">
+            <button class="tab-btn active" data-tab="catalog">
+              Catalog (<span id="catalog-count">0</span>)
+            </button>
+            <button class="tab-btn" data-tab="cart">
+              Cart (<span id="cart-count-badge">0</span>)
+            </button>
+            <button class="tab-btn" data-tab="mandate">
+              Mandate Rules
+            </button>
+            <button class="tab-btn" data-tab="audit">
+              Audit Log (<span id="count-all">0</span>)
+            </button>
+          </div>
+
+          <!-- Tab Content Panes -->
+          <div class="tab-panes">
+            <!-- Pane 1: Catalog Grid -->
+            <div class="tab-pane active" id="pane-catalog">
+              <div class="pane-search">
+                <input type="text" id="catalog-search" placeholder="Search products by name or category..." />
+              </div>
+              <div class="catalog-grid" id="catalog-grid">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+            <!-- Pane 2: Cart & Checkout -->
+            <div class="tab-pane" id="pane-cart">
+              <div class="cart-card">
+                <div class="cart-items-list" id="cart-items">
+                  <!-- Dynamically populated -->
+                </div>
+
+                <div class="upsell-box" id="upsell-banner" style="display: none;">
+                  <div class="upsell-title">Suggested Add-On</div>
+                  <p id="upsell-text"></p>
+                  <button class="btn-accent btn-sm" id="btn-accept-upsell">+ Add to Cart</button>
+                </div>
+
+                <div class="cart-summary">
+                  <div class="summary-row">
+                    <span>Total Amount:</span>
+                    <strong id="cart-total-text">₹0.00</strong>
+                  </div>
+
+                  <div class="gate-status-pill" id="cart-gate-status">
+                    Cart Empty
+                  </div>
+
+                  <div class="decline-toggle">
+                    <label class="switch">
+                      <input type="checkbox" id="toggle-simulate-failure" />
+                      <span class="slider-round"></span>
+                    </label>
+                    <span>Simulate Razorpay Payment Failure</span>
+                  </div>
+
+                  <button class="btn-primary btn-block" id="btn-checkout">
+                    Pay with Razorpay
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pane 3: Mandate Rules -->
+            <div class="tab-pane" id="pane-mandate">
+              <div class="mandate-box">
+                <h4>Spending Mandate Guardrails</h4>
+                <p class="desc">
+                  NPCI/UPI Reserve Pay protocol: spending caps and category restrictions are enforced deterministically by code before payment gateway execution.
+                </p>
+
+                <div class="progress-block">
+                  <div class="progress-labels">
+                    <span>Spent: <strong id="spent-detail">₹0.00</strong></span>
+                    <span>Remaining Headroom: <strong id="headroom-detail">₹3,000.00</strong></span>
+                  </div>
+                  <div class="bar-track">
+                    <div class="bar-fill" id="headroom-progress-fill" style="width: 0%"></div>
+                  </div>
+                </div>
+
+                <div class="mandate-form">
+                  <div class="field">
+                    <label>Session Cap (₹)</label>
+                    <input type="number" id="input-session-cap" value="3000" step="100" />
+                  </div>
+                  <div class="field">
+                    <label>Per-Item Ceiling (₹)</label>
+                    <input type="number" id="input-item-ceiling" value="2500" step="100" />
+                  </div>
+                  <div class="field full">
+                    <label>Allowed Categories</label>
+                    <div class="checks">
+                      <label><input type="checkbox" id="cat-electronics" checked /> Electronics</label>
+                      <label><input type="checkbox" id="cat-accessories" checked /> Accessories</label>
+                    </div>
+                  </div>
+                  <button type="button" class="btn-primary" id="btn-update-mandate">Save Rules</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pane 4: Audit Trail -->
+            <div class="tab-pane" id="pane-audit">
+              <div class="audit-box">
+                <div class="audit-toolbar">
+                  <span class="file-tag">audit_log.jsonl</span>
+                  <div class="filter-tabs">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="ALLOWED">Allowed (<span id="count-allowed">0</span>)</button>
+                    <button class="filter-btn" data-filter="BLOCKED">Blocked (<span id="count-blocked">0</span>)</button>
+                  </div>
+                </div>
+
+                <div class="table-container">
+                  <table class="audit-table">
+                    <thead>
+                      <tr>
+                        <th>Time</th>
+                        <th>Actor</th>
+                        <th>Action</th>
+                        <th>Gate Result</th>
+                        <th>Amount</th>
+                        <th>Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody id="audit-tbody">
+                      <!-- Dynamically populated -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Razorpay Checkout Modal -->
+    <div class="modal-overlay" id="payment-modal" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <span class="rzp-brand">Razorpay <span class="badge-test">TEST</span></span>
+          <button class="btn-close" id="btn-close-modal">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-body-content"></div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

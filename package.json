@@ -1,0 +1,21 @@
+{
+  "name": "agentic-commerce",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Gated, explainable, bounded agentic commerce demo on Razorpay test-mode APIs.",
+  "main": "demo.js",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "vite build",
+    "preview": "vite preview",
+    "demo": "node demo.js",
+    "chat": "node demo.js --chat"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.123.0",
+    "cors": "^2.8.6",
+    "express": "^4.22.2",
+    "razorpay": "^2.9.4",
+    "vite": "^5.4.21"
+  }
+}
