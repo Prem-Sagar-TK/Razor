@@ -56,37 +56,53 @@ function formatINR(paise) {
 }
 
 async function fetchSession() {
-  const res = await fetch("/api/session");
-  const data = await res.json();
-  if (data.ok) {
-    state.session = data.session;
-    updateUI();
+  try {
+    const res = await fetch("/api/session");
+    const data = await res.json();
+    if (data.ok) {
+      state.session = data.session;
+      updateUI();
+    }
+  } catch (err) {
+    console.error("Failed to fetch session:", err);
   }
 }
 
 async function fetchCatalog(query = "") {
-  const res = await fetch(`/api/catalog?q=${encodeURIComponent(query)}`);
-  const data = await res.json();
-  if (data.ok) {
-    state.products = data.products;
-    renderCatalog();
+  try {
+    const res = await fetch(`/api/catalog?q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    if (data.ok) {
+      state.products = data.products;
+      renderCatalog();
+    }
+  } catch (err) {
+    console.error("Failed to fetch catalog:", err);
   }
 }
 
 async function evaluateCampaign() {
-  const res = await fetch("/api/campaign", { method: "POST" });
-  const data = await res.json();
-  if (data.ok) {
-    renderCampaign(data);
+  try {
+    const res = await fetch("/api/campaign", { method: "POST" });
+    const data = await res.json();
+    if (data.ok) {
+      renderCampaign(data);
+    }
+  } catch (err) {
+    console.error("Failed to evaluate campaign:", err);
   }
 }
 
 async function fetchAuditTrail() {
-  const res = await fetch("/api/audit");
-  const data = await res.json();
-  if (data.ok) {
-    state.auditTrail = data.sessionTrail;
-    renderAuditTrail();
+  try {
+    const res = await fetch("/api/audit");
+    const data = await res.json();
+    if (data.ok) {
+      state.auditTrail = data.sessionTrail;
+      renderAuditTrail();
+    }
+  } catch (err) {
+    console.error("Failed to fetch audit trail:", err);
   }
 }
 
@@ -273,6 +289,15 @@ function renderCatalog() {
   const { mandate } = state.session;
 
   elements.catalogCount.textContent = state.products.length;
+
+  if (state.products.length === 0) {
+    elements.catalogGrid.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 40px 0; font-size: 0.88rem;">
+        No products found in catalog.
+      </div>
+    `;
+    return;
+  }
 
   elements.catalogGrid.innerHTML = state.products
     .map((p) => {
@@ -521,9 +546,11 @@ function initEventListeners() {
 
 async function init() {
   initEventListeners();
-  await fetchSession();
-  await fetchCatalog();
-  await fetchAuditTrail();
+  await Promise.all([fetchSession(), fetchCatalog(), fetchAuditTrail()]);
+  // Re-render catalog after both session and products are guaranteed to be loaded.
+  // renderCatalog() guards on state.session, so if fetchCatalog() resolved first
+  // (before fetchSession()) the catalog would silently stay empty.
+  renderCatalog();
   await evaluateCampaign();
   setInterval(fetchAuditTrail, 3000);
   setInterval(evaluateCampaign, 10000);
