@@ -3,7 +3,12 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-export const LOG_PATH = path.join(__dirname, "..", "audit_log.jsonl");
+// Vercel's project root is read-only; only /tmp is writable at runtime.
+// VERCEL is automatically set to "1" by the Vercel runtime.
+export const LOG_PATH = process.env.VERCEL
+  ? "/tmp/audit_log.jsonl"
+  : path.join(__dirname, "..", "audit_log.jsonl");
+
 
 export function logEvent({
   sessionId,

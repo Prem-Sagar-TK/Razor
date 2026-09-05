@@ -1,0 +1,13 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/api/catalog/schema", "destination": "/api/catalog-schema" },
+    { "source": "/api/session/reset",   "destination": "/api/session-reset" },
+    { "source": "/api/cart/add",        "destination": "/api/cart-add" },
+    { "source": "/api/cart/item",       "destination": "/api/cart-item" },
+    { "source": "/api/cart/clear",      "destination": "/api/cart-clear" },
+    { "source": "/api/(.*)",            "destination": "/api/$1" },
+    { "source": "/(.*)",                "destination": "/index.html" }
+  ]
+}
