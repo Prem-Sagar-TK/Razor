@@ -1,15 +1,3 @@
-/**
- * The conversational layer. This is the only part of the system that's an
- * LLM — it decides WHAT the buyer wants and calls tools; it never decides
- * whether a payment is allowed. That decision lives in mandate.js and is
- * deterministic. This separation is the whole point of "explainable,
- * bounded, and gated": the probabilistic part only picks intents and tool
- * calls, the gate is pure code.
- *
- * Runs against the real Claude API if ANTHROPIC_API_KEY is set; otherwise
- * falls back to a tiny rule-based parser so the demo works with zero setup.
- */
-
 import Anthropic from "@anthropic-ai/sdk";
 import { searchCatalog, getProduct } from "../catalog.js";
 import { addToCart, checkout, proposeUpsell } from "../engine.js";
@@ -63,8 +51,6 @@ async function runTool(session, name, input) {
   return { ok: false, message: `Unknown tool ${name}` };
 }
 
-/** One turn using the real Anthropic API with tool use. Returns
- * { text, history }. */
 export async function chatTurnLLM(session, history, userMessage) {
   const client = new Anthropic();
   let messages = [...history, { role: "user", content: userMessage }];
@@ -91,8 +77,6 @@ export async function chatTurnLLM(session, history, userMessage) {
     const toolResults = [];
     for (const tu of toolUses) {
       let result = await runTool(session, tu.name, tu.input);
-      // An upsell fires right after a successful add_to_cart -- one
-      // bounded suggestion, not a nag loop.
       if (tu.name === "add_to_cart" && result.ok) {
         const up = proposeUpsell(session);
         if (up.ok) result = { ...result, upsellSuggestion: up.message };
@@ -107,8 +91,6 @@ export async function chatTurnLLM(session, history, userMessage) {
   }
 }
 
-/** Zero-dependency rule-based stand-in for demos without an API key.
- * Understands: 'search X', 'add <sku> [qty]', 'checkout'. */
 export async function chatTurnFallback(session, userMessage) {
   const msg = userMessage.trim().toLowerCase();
 
@@ -121,24 +103,43 @@ export async function chatTurnFallback(session, userMessage) {
   }
 
   if (msg.startsWith("add ")) {
-    const parts = msg.slice("add ".length).split(/\s+/);
-    const productId = parts[0];
-    const qty = parts[1] ? parseInt(parts[1], 10) : 1;
-    const result = addToCart(session, productId, qty);
-    let out = result.message;
+    const raw = msg.slice("add ".length).trim();
+
+    const parts = raw.split(/\s+/);
+    let qty = 1;
+    let productQuery = raw;
+
+    if (parts.length > 1 && /^\d+$/.test(parts[parts.length - 1])) {
+      qty = parseInt(parts.pop(), 10);
+      productQuery = parts.join(" ");
+    }
+
+    let product = getProduct(productQuery);
+
+    if (!product) {
+      const matches = searchCatalog(productQuery);
+      if (matches.length > 0) product = matches[0];
+    }
+
+    if (!product) {
+      return `❌ Couldn't find a product matching "${productQuery}". Try 'search <keyword>' first.`;
+    }
+
+    const result = addToCart(session, product.id, qty);
+    let out = result.ok ? `✅ ${result.message}` : `🛡️ Mandate Gate Blocked: ${result.message}`;
     if (result.ok) {
       const up = proposeUpsell(session);
-      if (up.ok) out += "\n" + up.message;
+      if (up.ok) out += "\n\n💡 " + up.message;
     }
     return out;
   }
 
   if (msg === "checkout") {
     const result = await checkout(session);
-    return result.message;
+    return result.ok ? `✅ ${result.message}` : `❌ ${result.message}`;
   }
 
-  return "Try: 'search earbuds', 'add sku_001 1', or 'checkout'.";
+  return "Try: 'search earbuds', 'add Wireless Earbuds Pro', 'add sku_001 2', or 'checkout'.";
 }
 
 export async function chatTurn(session, history, userMessage) {

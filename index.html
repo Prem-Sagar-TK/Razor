@@ -14,7 +14,6 @@
   </head>
   <body>
     <div id="app" class="app-layout">
-      <!-- Minimal Header -->
       <header class="top-nav">
         <div class="nav-brand">
           <div class="nav-logo">⚡</div>
@@ -39,9 +38,7 @@
         </div>
       </header>
 
-      <!-- Main Content Split -->
       <div class="main-body">
-        <!-- Left: AI Assistant Chat -->
         <section class="chat-section">
           <div class="section-title">
             <div class="title-with-status">
@@ -73,15 +70,16 @@
           </form>
         </section>
 
-        <!-- Right: Storefront & Controls -->
         <section class="store-section">
-          <!-- View Navigation Tabs -->
           <div class="view-tabs">
             <button class="tab-btn active" data-tab="catalog">
               Catalog (<span id="catalog-count">0</span>)
             </button>
             <button class="tab-btn" data-tab="cart">
               Cart (<span id="cart-count-badge">0</span>)
+            </button>
+            <button class="tab-btn" data-tab="campaign">
+              🎯 Campaigns
             </button>
             <button class="tab-btn" data-tab="mandate">
               Mandate Rules
@@ -91,23 +89,18 @@
             </button>
           </div>
 
-          <!-- Tab Content Panes -->
           <div class="tab-panes">
-            <!-- Pane 1: Catalog Grid -->
             <div class="tab-pane active" id="pane-catalog">
               <div class="pane-search">
                 <input type="text" id="catalog-search" placeholder="Search products by name or category..." />
               </div>
               <div class="catalog-grid" id="catalog-grid">
-                <!-- Dynamically populated -->
               </div>
             </div>
 
-            <!-- Pane 2: Cart & Checkout -->
             <div class="tab-pane" id="pane-cart">
               <div class="cart-card">
                 <div class="cart-items-list" id="cart-items">
-                  <!-- Dynamically populated -->
                 </div>
 
                 <div class="upsell-box" id="upsell-banner" style="display: none;">
@@ -141,7 +134,36 @@
               </div>
             </div>
 
-            <!-- Pane 3: Mandate Rules -->
+            <div class="tab-pane" id="pane-campaign">
+              <div class="mandate-box">
+                <h4>🎯 Campaign Orchestrator</h4>
+                <p class="desc">
+                  Rule-based trigger engine. Campaigns fire based on session state
+                  (browse-without-buy, cart abandon risk, low headroom, first purchase).
+                  Each campaign is gate-checked before being shown — it will never
+                  suggest a product that exceeds the buyer's mandate.
+                </p>
+
+                <div id="campaign-status-area" style="margin: 16px 0;">
+                  <div class="gate-status-pill" id="campaign-status-pill">No active campaign</div>
+                </div>
+
+                <div id="campaign-card" style="display:none;" class="upsell-box">
+                  <div class="upsell-title" id="campaign-headline"></div>
+                  <p id="campaign-body"></p>
+                  <p id="campaign-product-info" style="font-size:0.82rem; color: var(--text-muted); margin-top:4px;"></p>
+                  <button class="btn-accent btn-sm" id="btn-accept-campaign" style="display:none;">+ Add Campaign Product</button>
+                </div>
+
+                <button class="btn-primary" id="btn-evaluate-campaign" style="margin-top: 16px;">
+                  Evaluate Campaigns Now
+                </button>
+                <p style="font-size:0.78rem; color:var(--text-muted); margin-top:8px;">
+                  (Auto-evaluates every 10 s. Click to force immediate evaluation.)
+                </p>
+              </div>
+            </div>
+
             <div class="tab-pane" id="pane-mandate">
               <div class="mandate-box">
                 <h4>Spending Mandate Guardrails</h4>
@@ -180,7 +202,6 @@
               </div>
             </div>
 
-            <!-- Pane 4: Audit Trail -->
             <div class="tab-pane" id="pane-audit">
               <div class="audit-box">
                 <div class="audit-toolbar">
@@ -205,7 +226,6 @@
                       </tr>
                     </thead>
                     <tbody id="audit-tbody">
-                      <!-- Dynamically populated -->
                     </tbody>
                   </table>
                 </div>
@@ -216,7 +236,6 @@
       </div>
     </div>
 
-    <!-- Razorpay Checkout Modal -->
     <div class="modal-overlay" id="payment-modal" style="display: none;">
       <div class="modal-card">
         <div class="modal-header">

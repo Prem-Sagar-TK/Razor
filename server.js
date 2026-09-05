@@ -10,6 +10,7 @@ import { Mandate } from "./src/mandate.js";
 import { Session, addToCart, checkout, proposeUpsell } from "./src/engine.js";
 import { readTrail, clearTrail } from "./src/audit.js";
 import { chatTurn } from "./src/agents/buyerAgent.js";
+import { evaluateCampaigns } from "./src/agents/campaignAgent.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -18,13 +19,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// In-memory active session & chat history
 function createDefaultSession() {
   const sessionId = `web-${crypto.randomBytes(3).toString("hex")}`;
   const mandate = new Mandate({
     sessionId,
-    maxSessionAmountPaise: 300000, // ₹3,000
-    maxSingleItemPaise: 250000,   // ₹2,500
+    maxSessionAmountPaise: 300000,
+    maxSingleItemPaise: 250000,
     allowedCategories: ["electronics", "accessories"],
   });
   return new Session(sessionId, mandate);
@@ -33,7 +33,8 @@ function createDefaultSession() {
 let activeSession = createDefaultSession();
 let chatHistory = [];
 
-// Helper to serialize session state for UI
+let browseTiming = { searchedAt: null, cartUpdatedAt: null };
+
 function getSessionPayload(session) {
   const enrichedCart = session.cart.map((item) => {
     const product = getProduct(item.productId);
@@ -61,12 +62,40 @@ function getSessionPayload(session) {
   };
 }
 
-// REST API Endpoints
-
 app.get("/api/catalog", (req, res) => {
   const query = req.query.q || "";
+  if (query) browseTiming.searchedAt = Date.now();
   const products = searchCatalog(query);
   res.json({ ok: true, products });
+});
+
+app.get("/api/catalog/schema", (req, res) => {
+  const categories = [...new Set(CATALOG.map((p) => p.category))];
+  const prices = CATALOG.map((p) => p.pricePaise);
+  res.json({
+    ok: true,
+    schema: {
+      currency: "INR",
+      priceUnit: "paise",
+      priceMin: Math.min(...prices),
+      priceMax: Math.max(...prices),
+      categories,
+      fields: [
+        { name: "id",          type: "string",   description: "Stable product SKU" },
+        { name: "name",        type: "string",   description: "Human-readable product name" },
+        { name: "category",   type: "string",   description: `One of: ${categories.join(", ")}` },
+        { name: "pricePaise", type: "integer",  description: "Price in Indian paise (divide by 100 for INR)" },
+        { name: "currency",   type: "string",   description: "Always INR" },
+        { name: "description",type: "string",   description: "Short product description" },
+        { name: "pairsWith",  type: "string[]", description: "Product IDs that pair well with this item" },
+      ],
+      endpoints: {
+        search: "GET /api/catalog?q=<keyword>",
+        addToCart: "POST /api/cart/add  { productId, quantity }",
+        checkout: "POST /api/checkout  { simulateFailure? }",
+      },
+    },
+  });
 });
 
 app.get("/api/session", (req, res) => {
@@ -76,6 +105,7 @@ app.get("/api/session", (req, res) => {
 app.post("/api/session/reset", (req, res) => {
   activeSession = createDefaultSession();
   chatHistory = [];
+  browseTiming = { searchedAt: null, cartUpdatedAt: null };
   res.json({ ok: true, message: "Session reset successfully", session: getSessionPayload(activeSession) });
 });
 
@@ -101,6 +131,7 @@ app.post("/api/cart/add", (req, res) => {
 
   let upsell = null;
   if (result.ok) {
+    browseTiming.cartUpdatedAt = Date.now();
     const up = proposeUpsell(activeSession);
     if (up.ok) {
       upsell = up;
@@ -141,16 +172,22 @@ app.post("/api/chat", async (req, res) => {
   }
 
   try {
+    const cartSizeBefore = activeSession.cart.length;
     const { text, history: updatedHistory } = await chatTurn(activeSession, chatHistory, message);
     chatHistory = updatedHistory;
 
-    // Check if an upsell is available for current cart state
-    const upsell = proposeUpsell(activeSession);
+    let upsell = null;
+    const cartChanged = activeSession.cart.length !== cartSizeBefore;
+    if (cartChanged) {
+      browseTiming.cartUpdatedAt = Date.now();
+      const up = proposeUpsell(activeSession);
+      if (up.ok) upsell = up;
+    }
 
     res.json({
       ok: true,
       text,
-      upsell: upsell.ok ? upsell : null,
+      upsell,
       session: getSessionPayload(activeSession),
     });
   } catch (err) {
@@ -159,13 +196,24 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
+app.post("/api/campaign", (req, res) => {
+  const { campaign, product, reason } = evaluateCampaigns(activeSession, browseTiming);
+  res.json({
+    ok: true,
+    hasCampaign: campaign !== null,
+    campaign,
+    product,
+    reason,
+    session: getSessionPayload(activeSession),
+  });
+});
+
 app.get("/api/audit", (req, res) => {
   const trail = readTrail(activeSession.sessionId);
   const allTrail = readTrail();
   res.json({ ok: true, sessionTrail: trail, fullTrail: allTrail });
 });
 
-// Setup Vite dev server or static middleware
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

@@ -51,7 +51,6 @@ body {
   gap: 20px;
 }
 
-/* Header */
 .top-nav {
   display: flex;
   justify-content: space-between;
@@ -136,7 +135,6 @@ body {
   color: var(--text-main);
 }
 
-/* Main Split */
 .main-body {
   display: grid;
   grid-template-columns: 460px 1fr;
@@ -144,7 +142,6 @@ body {
   flex: 1;
 }
 
-/* Section Containers */
 .chat-section,
 .store-section {
   background: var(--surface);
@@ -180,7 +177,6 @@ body {
   font-weight: 500;
 }
 
-/* Chat Stream */
 .chat-thread {
   flex: 1;
   overflow-y: auto;
@@ -274,7 +270,6 @@ body {
   background: var(--accent-hover);
 }
 
-/* Tabs */
 .view-tabs {
   display: flex;
   border-bottom: 1px solid var(--border);
@@ -323,7 +318,6 @@ body {
   gap: 16px;
 }
 
-/* Catalog Pane */
 .pane-search input {
   width: 100%;
   background: var(--bg-main);
@@ -424,7 +418,6 @@ body {
   background: var(--border-light);
 }
 
-/* Cart Pane */
 .cart-card {
   display: flex;
   flex-direction: column;
@@ -553,7 +546,6 @@ body {
   color: var(--text-sub);
 }
 
-/* Switch Slider */
 .switch {
   position: relative;
   display: inline-block;
@@ -602,7 +594,6 @@ input:checked + .slider-round:before { transform: translateX(16px); }
 .btn-primary:hover { background: var(--accent-hover); }
 .btn-block { width: 100%; }
 
-/* Mandate Rules Pane */
 .mandate-box {
   display: flex;
   flex-direction: column;
@@ -693,7 +684,6 @@ input:checked + .slider-round:before { transform: translateX(16px); }
   cursor: pointer;
 }
 
-/* Audit Log Pane */
 .audit-box {
   display: flex;
   flex-direction: column;
@@ -774,7 +764,6 @@ input:checked + .slider-round:before { transform: translateX(16px); }
 .badge-tag.allowed { background: var(--success-bg); color: var(--success); }
 .badge-tag.blocked { background: var(--error-bg); color: var(--error); }
 
-/* Modal */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;

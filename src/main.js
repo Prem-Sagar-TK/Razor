@@ -1,7 +1,3 @@
-/**
- * Minimalist Agentic Commerce Client
- */
-
 let state = {
   session: null,
   products: [],
@@ -46,13 +42,19 @@ const elements = {
   paymentModal: document.getElementById("payment-modal"),
   modalBodyContent: document.getElementById("modal-body-content"),
   btnCloseModal: document.getElementById("btn-close-modal"),
+  campaignStatusPill: document.getElementById("campaign-status-pill"),
+  campaignCard: document.getElementById("campaign-card"),
+  campaignHeadline: document.getElementById("campaign-headline"),
+  campaignBody: document.getElementById("campaign-body"),
+  campaignProductInfo: document.getElementById("campaign-product-info"),
+  btnAcceptCampaign: document.getElementById("btn-accept-campaign"),
+  btnEvaluateCampaign: document.getElementById("btn-evaluate-campaign"),
 };
 
 function formatINR(paise) {
   return `₹${(paise / 100).toFixed(2)}`;
 }
 
-// API Interactions
 async function fetchSession() {
   const res = await fetch("/api/session");
   const data = await res.json();
@@ -68,6 +70,14 @@ async function fetchCatalog(query = "") {
   if (data.ok) {
     state.products = data.products;
     renderCatalog();
+  }
+}
+
+async function evaluateCampaign() {
+  const res = await fetch("/api/campaign", { method: "POST" });
+  const data = await res.json();
+  if (data.ok) {
+    renderCampaign(data);
   }
 }
 
@@ -208,21 +218,17 @@ async function sendChatMessage(message) {
   }
 }
 
-// Rendering
 function updateUI() {
   if (!state.session) return;
   const { mandate, cart, cartTotalPaise, hasAnthropicKey } = state.session;
 
-  // Nav stats
   elements.headerHeadroomText.textContent = formatINR(mandate.remainingPaise);
   elements.spentText.textContent = formatINR(mandate.spentPaise);
   elements.llmModeBadge.textContent = hasAnthropicKey ? "Claude Sonnet 4.6" : "Rule Engine";
 
-  // Cart counts & summary
   elements.cartCountBadge.textContent = cart.length;
   elements.cartTotalText.textContent = formatINR(cartTotalPaise);
 
-  // Mandate Pane
   elements.spentDetail.textContent = formatINR(mandate.spentPaise);
   elements.headroomDetail.textContent = formatINR(mandate.remainingPaise);
 
@@ -236,7 +242,6 @@ function updateUI() {
     elements.inputItemCeiling.value = mandate.maxSingleItemPaise / 100;
   }
 
-  // Gate Status Pill
   const headroom = mandate.remainingPaise;
   if (cart.length === 0) {
     elements.cartGateStatus.className = "gate-status-pill";
@@ -252,7 +257,6 @@ function updateUI() {
     elements.btnCheckout.disabled = true;
   }
 
-  // Upsell Banner
   if (state.activeUpsell && state.activeUpsell.product) {
     elements.upsellBanner.style.display = "flex";
     elements.upsellText.textContent = state.activeUpsell.message;
@@ -419,7 +423,6 @@ function showModalResult(result) {
   }
 }
 
-// Tab Switching
 function initTabs() {
   document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -431,6 +434,34 @@ function initTabs() {
       if (targetPane) targetPane.classList.add("active");
     });
   });
+}
+
+function renderCampaign(data) {
+  if (!data.hasCampaign || !data.campaign) {
+    elements.campaignStatusPill.className = "gate-status-pill";
+    elements.campaignStatusPill.textContent = "No active campaign";
+    elements.campaignCard.style.display = "none";
+    return;
+  }
+
+  const { campaign, product } = data;
+  elements.campaignStatusPill.className = "gate-status-pill allowed";
+  elements.campaignStatusPill.textContent = `✓ Campaign Active: ${campaign.trigger}`;
+
+  elements.campaignHeadline.textContent = campaign.headline;
+  elements.campaignBody.textContent = campaign.body;
+
+  if (product) {
+    elements.campaignProductInfo.textContent =
+      `Product: ${product.name} — ${formatINR(product.pricePaise)} (${product.category})`;
+    elements.btnAcceptCampaign.style.display = "inline-block";
+    elements.btnAcceptCampaign.dataset.id = product.id;
+  } else {
+    elements.campaignProductInfo.textContent = "";
+    elements.btnAcceptCampaign.style.display = "none";
+  }
+
+  elements.campaignCard.style.display = "block";
 }
 
 function initEventListeners() {
@@ -453,6 +484,18 @@ function initEventListeners() {
       addToCartAPI(state.activeUpsell.product.id, 1);
       state.activeUpsell = null;
       updateUI();
+    }
+  });
+
+  elements.btnEvaluateCampaign.addEventListener("click", evaluateCampaign);
+
+  elements.btnAcceptCampaign.addEventListener("click", () => {
+    const id = elements.btnAcceptCampaign.dataset.id;
+    if (id) {
+      addToCartAPI(id, 1);
+      elements.campaignCard.style.display = "none";
+      elements.campaignStatusPill.className = "gate-status-pill";
+      elements.campaignStatusPill.textContent = "Campaign product added to cart";
     }
   });
 
@@ -481,7 +524,9 @@ async function init() {
   await fetchSession();
   await fetchCatalog();
   await fetchAuditTrail();
+  await evaluateCampaign();
   setInterval(fetchAuditTrail, 3000);
+  setInterval(evaluateCampaign, 10000);
 }
 
 init();

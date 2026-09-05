@@ -1,9 +1,3 @@
-/**
- * The engine the buyer-agent and upsell-agent both call into. This is
- * where "every money action explainable, bounded and gated" is actually
- * enforced in code, not just claimed in a pitch deck.
- */
-
 import { getProduct, upsellCandidates } from "./catalog.js";
 import { checkAction } from "./mandate.js";
 import { logEvent } from "./audit.js";
@@ -13,15 +7,10 @@ export class Session {
   constructor(sessionId, mandate) {
     this.sessionId = sessionId;
     this.mandate = mandate;
-    this.cart = []; // [{ productId, quantity }]
+    this.cart = [];
   }
 }
 
-/**
- * Adding to cart is gate-checked too (not just checkout) so the buyer
- * gets told immediately if an item would blow the mandate, rather than
- * finding out only at payment time.
- */
 export function addToCart(session, productId, quantity = 1) {
   const product = getProduct(productId);
   if (!product) {
@@ -48,11 +37,6 @@ export function addToCart(session, productId, quantity = 1) {
   return { ok: true, message: `Added ${quantity}x ${product.name} to cart.` };
 }
 
-/**
- * Checks the FULL cart against remaining mandate headroom, then, only if
- * allowed, calls Razorpay. A failed Razorpay call never touches
- * mandate.spentPaise, and both outcomes are written to the audit log.
- */
 export async function checkout(session, simulateFailure = false) {
   if (session.cart.length === 0) {
     return { ok: false, message: "Cart is empty." };
@@ -76,6 +60,15 @@ export async function checkout(session, simulateFailure = false) {
     return { ok: false, message: reason };
   }
 
+  logEvent({
+    sessionId: session.sessionId,
+    actor: "buyer_agent",
+    action: "checkout_gate",
+    amountPaise: totalPaise,
+    gateAllowed: true,
+    gateReason: "Cart within mandate headroom; forwarding to Razorpay.",
+  });
+
   const order = await createOrder({
     amountPaise: totalPaise,
     currency: "INR",
@@ -92,13 +85,15 @@ export async function checkout(session, simulateFailure = false) {
   logEvent({
     sessionId: session.sessionId,
     actor: "buyer_agent",
-    action: "checkout",
+    action: "checkout_payment",
     amountPaise: totalPaise,
     gateAllowed: true,
-    gateReason: "Cart within mandate headroom; sent to Razorpay.",
+    gateReason: success
+      ? `Gate: ALLOWED. Razorpay: SUCCESS (order ${order.id}).`
+      : `Gate: ALLOWED. Razorpay: FAILED (${order.failureReason ?? "unknown reason"}) — mandate headroom UNCHANGED.`,
     razorpayOrderId: order.id,
     razorpayStatus: order.status,
-    extra: { failureReason: order.failureReason ?? null },
+    extra: { paymentSucceeded: success, failureReason: order.failureReason ?? null },
   });
 
   if (!success) {
@@ -117,12 +112,6 @@ export async function checkout(session, simulateFailure = false) {
   };
 }
 
-/**
- * Suggests exactly ONE bounded, explainable add-on: it must (a) pair with
- * something already in the cart, and (b) itself pass the gate given
- * remaining headroom. If nothing qualifies, say so plainly instead of
- * forcing a pitch.
- */
 export function proposeUpsell(session) {
   const cartIds = session.cart.map((i) => i.productId);
   if (cartIds.length === 0) {

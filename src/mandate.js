@@ -1,24 +1,10 @@
-/**
- * The gate.
- *
- * Modeled on UPI Reserve Pay / NPCI's proposed Unified Agent Protocol: the
- * buyer sets a spending mandate ONCE per session (cap, allowed categories,
- * per-item ceiling). Every subsequent agent-initiated money action is
- * checked against that mandate before it's allowed to touch Razorpay. No
- * mandate, no money movement — full stop.
- *
- * This is intentionally simple and deterministic (not LLM-judged) because
- * the one thing you never want probabilistic is "was this transaction
- * allowed."
- */
-
 export class Mandate {
   constructor({ sessionId, maxSessionAmountPaise, maxSingleItemPaise, allowedCategories }) {
     this.sessionId = sessionId;
     this.maxSessionAmountPaise = maxSessionAmountPaise;
     this.maxSingleItemPaise = maxSingleItemPaise;
     this.allowedCategories = allowedCategories;
-    this.spentPaise = 0; // running total, updated only after a successful charge
+    this.spentPaise = 0;
   }
 
   remainingPaise() {
@@ -26,12 +12,6 @@ export class Mandate {
   }
 }
 
-/**
- * Pure function: given a mandate and a proposed line item, decide if it's
- * allowed. Never mutates state — callers apply spentPaise updates only
- * after a successful Razorpay call, so a failed payment never silently
- * consumes mandate headroom.
- */
 export function checkAction(mandate, product, quantity = 1) {
   if (!mandate.allowedCategories.includes(product.category)) {
     return {

@@ -1,13 +1,3 @@
-/**
- * Audit trail.
- *
- * Every money-adjacent decision (allowed or blocked) is written here as one
- * JSON line: who asked, what for, how much, what the gate decided and why,
- * and what Razorpay said. This file IS the explainability story — anyone
- * should be able to reconstruct exactly why any rupee moved, or didn't,
- * from this log alone.
- */
-
 import { appendFileSync, readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -17,8 +7,8 @@ export const LOG_PATH = path.join(__dirname, "..", "audit_log.jsonl");
 
 export function logEvent({
   sessionId,
-  actor, // "buyer_agent" | "upsell_agent"
-  action, // "checkout" | "add_to_cart_check" | "upsell_offer"
+  actor,
+  action,
   productId = null,
   quantity = null,
   amountPaise = null,
@@ -60,4 +50,3 @@ export function clearTrail() {
     appendFileSync(LOG_PATH, "", { flag: "w" });
   }
 }
-

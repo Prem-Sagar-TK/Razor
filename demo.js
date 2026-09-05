@@ -1,11 +1,3 @@
-/**
- * Run:  node demo.js            -> scripted demo (happy path + upsell + one
- *                                    deterministic declined payment handled
- *                                    gracefully, then prints the audit trail)
- *       node demo.js --chat     -> interactive chat (uses Claude if
- *                                    ANTHROPIC_API_KEY is set, else rule-based fallback)
- */
-
 import readline from "node:readline/promises";
 import crypto from "node:crypto";
 
@@ -17,8 +9,8 @@ import { chatTurn } from "./src/agents/buyerAgent.js";
 function newSession(sessionId) {
   const mandate = new Mandate({
     sessionId,
-    maxSessionAmountPaise: 300000, // ₹3,000 cap for this session
-    maxSingleItemPaise: 250000, // ₹2,500 per-item ceiling
+    maxSessionAmountPaise: 300000,
+    maxSingleItemPaise: 250000,
     allowedCategories: ["electronics", "accessories"],
   });
   return new Session(sessionId, mandate);

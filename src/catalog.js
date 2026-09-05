@@ -1,14 +1,3 @@
-/**
- * Agent-readable catalog.
- *
- * This is the machine-facing surface a buyer-agent queries instead of
- * scraping a webpage. Each product carries what an AI buyer actually needs
- * to transact: stable id, price in minor units (paise, matching Razorpay's
- * convention), category (used by the mandate gate for allow-lists), and a
- * small "pairsWith" list the upsell agent uses to make bounded, explainable
- * suggestions rather than free-associating.
- */
-
 export const CATALOG = [
   {
     id: "sku_001",
@@ -79,8 +68,6 @@ export function getProduct(productId) {
   return CATALOG.find((p) => p.id === productId) ?? null;
 }
 
-/** Naive keyword search over name/description/category. Good enough for a
- * demo; swap for embeddings/full-text search in production. */
 export function searchCatalog(query) {
   const q = (query ?? "").toLowerCase().trim();
   if (!q) return CATALOG;
@@ -92,7 +79,6 @@ export function searchCatalog(query) {
   );
 }
 
-/** Products explicitly declared as pairing with what's already in cart. */
 export function upsellCandidates(productIds) {
   const seen = new Set(productIds);
   const out = [];
