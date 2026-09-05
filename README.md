@@ -1,4 +1,4 @@
-# Agentic Commerce Starter (Node.js) — Gated, Explainable, Bounded
+# Mandate Gate
 
 Built for the **AI Growth & Agentic Commerce** track: grow merchant revenue
 *and* make the merchant transactable by an AI buyer, end to end, on
